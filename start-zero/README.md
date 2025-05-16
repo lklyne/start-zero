@@ -12,9 +12,6 @@ bun db:up
 # Push the schema to the database
 bun db:push
 
-# Push the auth schema to the database
-bun db:auth:push
-
 # Start Zero Cache
 bun zero-cache
 

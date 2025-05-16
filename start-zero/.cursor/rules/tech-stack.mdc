@@ -10,7 +10,7 @@ alwaysApply: true
 - **Routing:** Tanstack Router for all routes. Most of the app is a SPA and handled client side.  
 - **UI & Styling:** Tailwind CSS (PostCSS, tailwind-merge, tailwindcss-animate), Shadcn UI components , Radix UI primitives, Lucide React icons, clsx & class-variance-authority for utility styling.
 - **Forms & Validation:** @tanstack/react-form with @tanstack/zod-form-adapter powered by Zod.
-- **Authentication & Database:** Better-auth for auth flows, Drizzle-managed PostgreSQL schemas (with Docker Compose), drizzle-kit for migrations & studio.
+- **Authentication & Database:** Supabase Auth for authentication, Drizzle-managed PostgreSQL schemas (with Docker Compose), drizzle-kit for migrations & studio.
 - **Tooling & Testing:** Bun/Bunx scripts, Biome (lint & format), Vitest & Testing Library, vite-tsconfig-paths, and shadcn@latest CLI for component scaffolding. Use bun for all commands.
 
 *Patterns:* Schema-driven code generation, instant data updates with Zero mutators, file-based routing, and Zod-driven validation. Use kebab case for all files. Break up large files into smaller focused files. 

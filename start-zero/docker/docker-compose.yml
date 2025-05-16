@@ -26,29 +26,6 @@ services:
       - pgdata:/var/lib/postgresql/data
       - ./:/docker-entrypoint-initdb.d
 
-  # Auth database service
-  postgres_auth:
-    image: postgres:16.2-alpine
-    shm_size: 1g
-    user: postgres
-    restart: always
-    healthcheck:
-      test: 'pg_isready -U auth_user --dbname=auth_db'
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    ports:
-      - 5431:5432
-    environment:
-      POSTGRES_DB: auth_db
-      POSTGRES_USER: auth_user
-      POSTGRES_PASSWORD: auth_password
-    command: postgres
-    volumes:
-      - postgres_auth_data:/var/lib/postgresql/data
-
 volumes:
   pgdata:
-    driver: local
-  postgres_auth_data:
     driver: local
