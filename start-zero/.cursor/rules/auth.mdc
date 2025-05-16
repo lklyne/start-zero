@@ -3,7 +3,7 @@ description:
 globs: 
 alwaysApply: true
 ---
-# Authentication Flow Overview
+<!-- # Authentication Flow Overview
 
 This document outlines how authentication is wired up in the project using Better Auth, JWT, and Zero Sync. It captures both server and client concerns, plus automatic routes and key integration points.
 
@@ -117,4 +117,4 @@ This document outlines how authentication is wired up in the project using Bette
 
 [^1]: https://www.better-auth.com/docs/basic-usage  
 [^2]: https://www.better-auth.com/docs/plugins/jwt  
-[^3]: https://zero.rocicorp.dev/docs/auth
+[^3]: https://zero.rocicorp.dev/docs/auth -->

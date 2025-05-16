@@ -26,6 +26,7 @@ bun dev
 
 - Tanstack Start
 - Zero Sync
+- Supabase
 - Drizzle
 - Shadcn
 - Biome

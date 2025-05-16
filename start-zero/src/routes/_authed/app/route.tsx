@@ -1,7 +1,6 @@
 import { AppSidebar } from '@/components/app-sidebar'
 import { SidebarProvider } from '@/components/ui/sidebar'
-import { zeroAtom } from '@/lib/zero-setup'
-import { authAtom } from '@/lib/zero-setup'
+import { initializeZero, zeroAtom } from '@/lib/zero-setup'
 import { ZeroProvider } from '@rocicorp/zero/react'
 import { Outlet, createFileRoute } from '@tanstack/react-router'
 import { useSyncExternalStore } from 'react'
@@ -28,18 +27,14 @@ function AppContent() {
 
 function RouteComponent() {
 	const zero = useSyncExternalStore(zeroAtom.onChange, () => zeroAtom.value)
-	const auth = useSyncExternalStore(authAtom.onChange, () => authAtom.value)
+	const { user } = Route.useRouteContext()
+	console.log('🔐 Root route context:', { user })
 
-	// upsert user into Zero
+	// Initialize Zero with user data
 	useEffect(() => {
-		if (!zero || !auth) return
-		console.log('🔄 Upserting user into Zero')
-		zero.mutate.users.upsert({
-			id: auth.decoded.sub as string,
-			email: auth.decoded.email ?? '',
-			name: auth.decoded.name ?? '',
-		})
-	}, [zero, auth])
+		if (!user) return
+		initializeZero(user)
+	}, [user])
 
 	if (!zero) return null
 

@@ -1,21 +1,51 @@
-import { authClient } from '@/lib/auth-client'
+import { getSupabaseBrowserClient } from '@/lib/supabase-client'
 import type { ZeroSchema } from '@/server/db/zero-permissions'
 import { useQuery, useZero } from '@rocicorp/zero/react'
+import type { Session } from '@supabase/supabase-js'
 import { Loader2 } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
 import { AccountDelete } from './account-delete'
 import { Button } from './ui/button'
 
 const AccountOverview = () => {
-	const { data, isPending, error } = authClient.useSession()
+	const [session, setSession] = useState<Session | null>(null)
+	const [loading, setLoading] = useState(true)
+	const supabase = getSupabaseBrowserClient()
+
 	// Placeholder state for subscription loading, adapt as needed
 	const [isSubscriptionLoading, setIsSubscriptionLoading] = useState(false)
 	const z = useZero<ZeroSchema>()
 
-	const [zeroUser] = useQuery(
-		z.query.users.where('id', data?.user?.id || '').one(),
-	)
+	// Fetch Supabase session
+	useEffect(() => {
+		const fetchSession = async () => {
+			const { data, error } = await supabase.auth.getSession()
+			if (error) {
+				console.error('Error fetching session:', error)
+			} else {
+				setSession(data.session)
+			}
+			setLoading(false)
+		}
+
+		fetchSession()
+
+		// Listen for auth changes
+		const {
+			data: { subscription },
+		} = supabase.auth.onAuthStateChange((_event, newSession) => {
+			setSession(newSession)
+		})
+
+		return () => {
+			subscription.unsubscribe()
+		}
+	}, [supabase])
+
+	const userId = session?.user?.id || ''
+
+	const [zeroUser] = useQuery(z.query.users.where('id', userId).one())
 
 	// Placeholder functions, adapt as needed
 	const refetchSubscription = () => {
@@ -27,10 +57,9 @@ const AccountOverview = () => {
 
 	return (
 		<div className='m-4'>
-			{isPending && <p>Loading account data...</p>}
-			{error && <p className='text-destructive'>Error: {error.message}</p>}
+			{loading && <p>Loading account data...</p>}
 
-			{data ? (
+			{session ? (
 				<div className='space-y-4'>
 					<div className='flex flex-col border bg-background'>
 						<div className='flex items-center gap-2 w-full justify-between px-4 border-b pb-2 pt-2'>
@@ -40,12 +69,16 @@ const AccountOverview = () => {
 							<div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
 								<div>
 									<p className='text-sm text-muted-foreground'>Name</p>
-									<p className='text-sm'>{zeroUser?.name || 'Not available'}</p>
+									<p className='text-sm'>
+										{session.user.user_metadata?.name ||
+											zeroUser?.name ||
+											'Not available'}
+									</p>
 								</div>
 								<div>
 									<p className='text-sm text-muted-foreground'>Email</p>
 									<p className='text-sm'>
-										{zeroUser?.email || 'Not available'}
+										{session.user.email || zeroUser?.email || 'Not available'}
 									</p>
 								</div>
 							</div>
@@ -99,7 +132,7 @@ const AccountOverview = () => {
 							<div className='space-y-4'>
 								<p className='text-sm text-muted-foreground'>
 									Deleting your account will permanently remove all your data
-									from Zero and Better Auth. This action cannot be undone.
+									from Zero and Supabase. This action cannot be undone.
 								</p>
 								<div>
 									<AccountDelete />
@@ -109,7 +142,7 @@ const AccountOverview = () => {
 					</div>
 				</div>
 			) : (
-				!isPending && <p>Please log in to view account details.</p>
+				!loading && <p>Please log in to view account details.</p>
 			)}
 		</div>
 	)

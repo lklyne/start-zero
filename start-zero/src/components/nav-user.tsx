@@ -17,21 +17,21 @@ import {
 	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { authClient } from '@/lib/auth-client'
+import { getSupabaseBrowserClient } from '@/lib/supabase-client'
+import { Route as RootRoute } from '@/routes/__root'
 import { useNavigate } from '@tanstack/react-router'
 import { Link } from '@tanstack/react-router'
 
 export function NavUser() {
-	const { data: session, isPending } = authClient.useSession()
+	const { user } = RootRoute.useRouteContext()
 	const navigate = useNavigate()
 
-	// If session is loading or no user, return null
-	if (isPending || !session?.user) return null
-
-	const user = session.user
+	// If no user, return null
+	if (!user) return null
 
 	const handleSignout = async () => {
-		await authClient.signOut()
+		const supabase = getSupabaseBrowserClient()
+		await supabase.auth.signOut()
 		navigate({ to: '/' })
 	}
 
@@ -47,7 +47,7 @@ export function NavUser() {
 					className='rounded-md px-2 py-2 w-full h-auto'
 				>
 					<Avatar className='h-8 w-8 rounded-sm text-sm mr-2'>
-						<AvatarImage src={user.image || ''} alt={user.name || ''} />
+						<AvatarImage src='' alt={user.name} />
 						<AvatarFallback className='rounded-md'>
 							{user.name?.slice(0, 2)?.toUpperCase() || 'UN'}
 						</AvatarFallback>
@@ -72,7 +72,7 @@ export function NavUser() {
 				<DropdownMenuLabel className='p-0 font-normal'>
 					<div className='flex items-center gap-2 px-1 py-1.5 text-left text-sm'>
 						<Avatar className='h-8 w-8 rounded-lg'>
-							<AvatarImage src={user.image || ''} alt={user.name || ''} />
+							<AvatarImage src='' alt={user.name} />
 							<AvatarFallback className='rounded-lg'>
 								{user.name?.slice(0, 2)?.toUpperCase() || 'UN'}
 							</AvatarFallback>
