@@ -1,5 +1,5 @@
 ---
-description: 
+description: supabase auth login logout account session
 globs: 
 alwaysApply: false
 ---

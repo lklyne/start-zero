@@ -1,5 +1,4 @@
 import { createServerClient } from '@supabase/ssr'
-import type { CookieOptions } from '@supabase/ssr'
 import { parseCookies, setCookie } from '@tanstack/react-start/server'
 
 export function getSupabaseServerClient() {
@@ -9,15 +8,23 @@ export function getSupabaseServerClient() {
 
 	return createServerClient(url, anon, {
 		cookies: {
-			get(name: string) {
-				const cookies = parseCookies()
-				return cookies[name]
+			// @ts-ignore Wait till Supabase overload works
+			getAll() {
+				return Object.entries(parseCookies()).map(([name, value]) => ({
+					name,
+					value,
+				}))
 			},
-			set(name: string, value: string, options: CookieOptions) {
-				setCookie(name, value, options)
-			},
-			remove(name: string, options: CookieOptions) {
-				setCookie(name, '', { ...options, maxAge: -1 })
+			setAll(cookies) {
+				for (const cookie of cookies) {
+					const cookieOptions = {
+						// Default expiration - 30 days
+						maxAge: 30 * 24 * 60 * 60,
+						path: '/',
+						...cookie.options,
+					}
+					setCookie(cookie.name, cookie.value, cookieOptions)
+				}
 			},
 		},
 	})

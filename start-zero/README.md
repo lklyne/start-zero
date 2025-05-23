@@ -29,6 +29,7 @@ bun dev
 - Biome
 - React Email
 - Resend
+- Shadcn UI
 
 ## Schema workflow
 

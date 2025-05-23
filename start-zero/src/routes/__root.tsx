@@ -1,11 +1,9 @@
-import { AccountLogout } from '@/components/account-logout'
 import { DefaultCatchBoundary } from '@/components/default-catch-boundry'
 import { NotFound } from '@/components/not-found'
 import { getSupabaseServerClient } from '@/lib/supabase'
 import type { ErrorComponentProps } from '@tanstack/react-router'
 import {
 	HeadContent,
-	Link,
 	Outlet,
 	Scripts,
 	createRootRoute,

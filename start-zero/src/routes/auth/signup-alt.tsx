@@ -1,7 +1,7 @@
 import { SupabaseSignupForm } from '@/components/supabase-signup'
 import { createFileRoute } from '@tanstack/react-router'
 
-export const Route = createFileRoute('/auth/signup')({
+export const Route = createFileRoute('/auth/signup-alt')({
 	component: SignupPage,
 })
 

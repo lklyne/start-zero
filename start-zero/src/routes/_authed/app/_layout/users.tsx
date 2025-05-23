@@ -31,14 +31,21 @@ function UserList({ view }: { view: 'json' | 'table' }) {
 			<div>
 				{users?.map((user) => (
 					<div key={user.id} className='flex'>
-						<div className='flex grow items-center justify-between hover:bg-secondary/40 group pl-4 pr-4 py-3'>
+						<div className='grid grid-cols-3 grow items-start hover:bg-secondary/40 group pl-4 pr-4 py-3'>
 							<span className='font-medium text-sm text-stone-700 group-hover:text-stone-950'>
-								{user.name}
+								{user.name ? (
+									user.name
+								) : (
+									<span className='italic text-stone-500'>No username</span>
+								)}
 							</span>
 							<div className='flex items-center'>
 								<span className='text-sm text-muted-foreground'>
 									{user.email}
 								</span>
+							</div>
+							<div className='flex items-center'>
+								<span className='text-sm text-muted-foreground'>{user.id}</span>
 							</div>
 						</div>
 					</div>

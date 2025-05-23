@@ -18,9 +18,9 @@ function LandingPage() {
 			description: 'Full-stack React framework.',
 		},
 		{
-			name: 'Better Auth',
-			url: 'https://www.better-auth.com/',
-			description: 'Comprehensive authentication.',
+			name: 'Supabase',
+			url: 'https://supabase.com',
+			description: 'Postgres database and auth.',
 		},
 		{
 			name: 'Resend',

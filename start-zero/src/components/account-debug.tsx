@@ -14,7 +14,7 @@ import {
 	TooltipProvider,
 	TooltipTrigger,
 } from '@/components/ui/tooltip'
-import { authClient } from '@/lib/auth-client'
+import { getSupabaseBrowserClient } from '@/lib/supabase-client'
 import { useZero } from '@rocicorp/zero/react'
 import { BugIcon, CheckCircle2, RefreshCw, XCircle } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
@@ -96,17 +96,37 @@ interface SessionData {
 	[key: string]: unknown
 }
 
-// Interface for session items from Better Auth API
-interface BetterAuthSession {
+// Supabase session type
+interface SupabaseSession {
 	id: string
-	createdAt: Date | string
-	updatedAt: Date | string
-	userId: string
-	expiresAt: Date | string
+	created_at: string
+	last_sign_in_at: string
+	user_id: string
+	expires_at: string
 	token: string
-	ipAddress?: string | null
-	userAgent?: string | null
-	current?: boolean
+	app_metadata?: {
+		provider?: string
+		[key: string]: unknown
+	}
+	user_metadata?: {
+		[key: string]: unknown
+	}
+	user?: {
+		id: string
+		email?: string
+		phone?: string
+		app_metadata: {
+			provider?: string
+			[key: string]: unknown
+		}
+		user_metadata: {
+			[key: string]: unknown
+		}
+		aud: string
+		created_at: string
+		[key: string]: unknown
+	}
+	[key: string]: unknown
 }
 
 interface ZeroStatusData {
@@ -120,6 +140,7 @@ interface ZeroStatusData {
 
 export function AccountDebug() {
 	const z = useZero()
+	const supabase = getSupabaseBrowserClient()
 	const [jwt, setJwt] = useState<string | null>(null)
 	const [decodedHeader, setDecodedHeader] = useState<JWTHeader | null>(null)
 	const [decodedPayload, setDecodedPayload] = useState<JWTPayload | null>(null)
@@ -146,27 +167,27 @@ export function AccountDebug() {
 		setIsLoading(true)
 		try {
 			const startTime = performance.now()
-			const response = await fetch('/api/auth/token')
+			// Get the session from Supabase
+			const { data, error } = await supabase.auth.getSession()
 			const endTime = performance.now()
 
 			setNetworkInfo({
-				status: response.status,
+				status: error ? 400 : 200,
 				time: Math.floor(endTime - startTime),
-				size: Number.parseInt(response.headers.get('content-length') || '0'),
+				size: data ? JSON.stringify(data).length : 0,
 			})
 
-			// Prefer getting JWT from header if available
-			const authJwt = response.headers.get('set-auth-jwt')
-			if (authJwt) {
-				setJwt(authJwt)
+			if (error) {
+				console.error('Error getting Supabase session:', error)
+				setJwt(null)
+				return
+			}
+
+			// Get the JWT from the session
+			if (data.session?.access_token) {
+				setJwt(data.session.access_token)
 			} else {
-				// Fallback to response body if not in header
-				const tokenData = await response.json()
-				if (tokenData.token) {
-					setJwt(tokenData.token)
-				} else {
-					setJwt(null)
-				}
+				setJwt(null)
 			}
 		} catch (err) {
 			console.error('Error fetching JWT:', err)
@@ -174,54 +195,78 @@ export function AccountDebug() {
 		} finally {
 			setIsLoading(false)
 		}
-	}, [])
+	}, [supabase])
 
 	const fetchJwks = useCallback(async () => {
 		try {
-			const response = await fetch('/api/auth/jwks')
-			const data = await response.json()
-			setJwksData(data)
+			// Supabase doesn't expose JWKS directly, so we'll just show info about key management
+			setJwksData({
+				keys: [
+					{
+						kid: 'supabase-jwt-key',
+						alg: 'HS256',
+						description: 'JWT signature key managed by Supabase Auth',
+					},
+				],
+			})
 		} catch (err) {
-			console.error('Error fetching JWKS:', err)
+			console.error('Error with JWKS info:', err)
 			setJwksData(null)
 		}
 	}, [])
 
 	const fetchSession = useCallback(async () => {
 		try {
-			// Better Auth's getSession method
-			const session = await authClient.getSession()
-			setSessionData(session.data || null)
+			// Get session from Supabase
+			const { data, error } = await supabase.auth.getSession()
 
-			// Also try to get all sessions
-			const sessionsList = await authClient.listSessions()
+			if (error) {
+				console.error('Error getting session:', error)
+				setSessionData(null)
+				setAllSessions([])
+				return
+			}
 
-			// Convert the sessions to our expected format
-			const formattedSessions = (sessionsList.data || []).map(
-				(session: BetterAuthSession) => ({
-					id: session.id,
-					userAgent: session.userAgent || undefined,
-					ipAddress: session.ipAddress || undefined,
-					expiresAt: session.expiresAt
-						? new Date(session.expiresAt).toISOString()
-						: undefined,
-					createdAt: session.createdAt
-						? new Date(session.createdAt).toISOString()
-						: undefined,
-					updatedAt: session.updatedAt
-						? new Date(session.updatedAt).toISOString()
-						: undefined,
-					current: session.current,
-				}),
-			)
+			const supaSession = data.session as SupabaseSession | null
 
-			setAllSessions(formattedSessions)
+			// Format session data to match our interface
+			if (supaSession) {
+				const formattedSession: SessionData = {
+					user: {
+						id: supaSession.user?.id,
+						email: supaSession.user?.email || undefined,
+						name: supaSession.user?.user_metadata?.name as string,
+						emailVerified: supaSession.user?.email_confirmed_at ? true : false,
+					},
+					provider: supaSession.user?.app_metadata?.provider,
+					expiresAt: supaSession.expires_at,
+				}
+				setSessionData(formattedSession)
+
+				// For Supabase, we typically only have access to the current session
+				// We'll create an array with just the current session
+				const formattedSessions = [
+					{
+						id: supaSession.id,
+						userAgent: navigator.userAgent,
+						ipAddress: 'Not available in client', // Supabase doesn't expose this client-side
+						expiresAt: supaSession.expires_at,
+						createdAt: supaSession.created_at,
+						updatedAt: supaSession.last_sign_in_at,
+						current: true,
+					},
+				]
+				setAllSessions(formattedSessions)
+			} else {
+				setSessionData(null)
+				setAllSessions([])
+			}
 		} catch (err) {
 			console.error('Error fetching session:', err)
 			setSessionData(null)
 			setAllSessions([])
 		}
-	}, [])
+	}, [supabase])
 
 	const fetchZeroStatus = useCallback(() => {
 		if (!z) {
@@ -232,10 +277,10 @@ export function AccountDebug() {
 		try {
 			// Get what information we can about the Zero instance
 			const status: ZeroStatusData = {
-				isInitialized: !!z,
+				isInitialized: z != null,
 				userID: z?.userID || 'unknown',
 				userMode: z?.userID === 'guest' ? 'Guest Mode' : 'Authenticated',
-				mutatorNames: Object.keys(z.mutate || {}),
+				mutatorNames: Object.keys(z?.mutate || {}),
 				isAuthenticated: z?.userID !== 'guest',
 			}
 			setZeroStatusData(status)
@@ -245,7 +290,7 @@ export function AccountDebug() {
 		}
 	}, [z])
 
-	// Check if Better Auth and Zero user IDs match
+	// Check if Supabase Auth and Zero user IDs match
 	useEffect(() => {
 		const authId = sessionData?.user?.id
 		const zeroId = zeroStatusData?.userID
@@ -261,34 +306,21 @@ export function AccountDebug() {
 		}
 	}, [sessionData, zeroStatusData])
 
-	const revokeSession = useCallback(
-		async (sessionToken: string) => {
-			try {
-				setIsLoading(true)
-				await authClient.revokeSession({ token: sessionToken })
-				// Refresh sessions list after revoking
-				await fetchSession()
-			} catch (err) {
-				console.error('Error revoking session:', err)
-			} finally {
-				setIsLoading(false)
-			}
-		},
-		[fetchSession],
-	)
-
-	const revokeAllOtherSessions = useCallback(async () => {
+	const signOut = useCallback(async () => {
 		try {
 			setIsLoading(true)
-			await authClient.revokeOtherSessions()
-			// Refresh sessions list after revoking
+			const { error } = await supabase.auth.signOut()
+			if (error) {
+				console.error('Error signing out:', error)
+			}
+			// Refresh session data after sign out
 			await fetchSession()
 		} catch (err) {
-			console.error('Error revoking other sessions:', err)
+			console.error('Error signing out:', err)
 		} finally {
 			setIsLoading(false)
 		}
-	}, [fetchSession])
+	}, [supabase, fetchSession])
 
 	const fetchAllData = useCallback(() => {
 		fetchToken()
@@ -370,7 +402,7 @@ export function AccountDebug() {
 						<div className='flex items-center gap-2 w-full justify-between px-4 border-b pb-2 pt-2'>
 							<h2 className='font-medium text-sm'>Session Info</h2>
 							<span className='px-2 py-0.5 bg-blue-50/50 text-blue-800 rounded border border-blue-200 dark:bg-blue-950/40 dark:text-blue-50 dark:border-blue-900 text-sm'>
-								Better Auth
+								Supabase Auth
 							</span>
 						</div>
 						<div className='p-4'>
@@ -429,11 +461,11 @@ export function AccountDebug() {
 								<Button
 									variant='ghost'
 									size='sm'
-									onClick={revokeAllOtherSessions}
-									disabled={isLoading || allSessions.length <= 1}
+									onClick={signOut}
+									disabled={isLoading}
 									className='text-xs'
 								>
-									{isLoading ? '...' : 'Revoke Other Sessions'}
+									{isLoading ? '...' : 'Sign Out'}
 								</Button>
 							</div>
 							<div className='p-4'>
@@ -466,15 +498,6 @@ export function AccountDebug() {
 													)}
 												</div>
 											</div>
-											<Button
-												variant='outline'
-												size='sm'
-												disabled={isLoading || session.current}
-												onClick={() => session.id && revokeSession(session.id)}
-												className='ml-2'
-											>
-												Revoke
-											</Button>
 										</div>
 									))}
 								</div>
@@ -567,9 +590,9 @@ export function AccountDebug() {
 									</p>
 								</div>
 								<div>
-									<p className='text-sm text-muted-foreground'>Server URL</p>
+									<p className='text-sm text-muted-foreground'>Supabase URL</p>
 									<p className='text-sm'>
-										{import.meta.env.VITE_PUBLIC_SERVER || 'Not configured'}
+										{import.meta.env.VITE_SUPABASE_URL || 'Not configured'}
 									</p>
 								</div>
 								<div>
