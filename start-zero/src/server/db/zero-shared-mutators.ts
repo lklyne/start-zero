@@ -3,9 +3,10 @@ import type { Schema } from '@/server/db/zero-schema.gen'
 import type { CustomMutatorDefs, Transaction } from '@rocicorp/zero'
 
 /**
- * Define client-side mutators
+ * Shared mutators containing core business logic and database operations
+ * These are used by both client and server mutators
  */
-export function createMutators(authData: AuthData) {
+export function createSharedMutators(authData: AuthData) {
 	return {
 		persons: {
 			async insert(
@@ -51,13 +52,10 @@ export function createMutators(authData: AuthData) {
 				args: { id: string; email: string; name: string },
 			) {
 				if (!authData.sub) throw new Error('Not authenticated')
-
-				// Check if user already exists
-				if (await tx.query.users.where('id', args.id).one().run()) return
-				await tx.mutate.users.insert(args)
+				await tx.mutate.users.upsert(args)
 			},
 		},
 	} as const satisfies CustomMutatorDefs<Schema>
 }
 
-export type Mutators = ReturnType<typeof createMutators>
+export type SharedMutators = ReturnType<typeof createSharedMutators>
