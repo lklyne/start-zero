@@ -41,20 +41,11 @@ async function getConnectionCount() {
 export const APIRoute = createAPIFileRoute('/api/push')({
 	POST: async ({ request }) => {
 		try {
-			console.log('🟨 Push endpoint received request')
-
 			// 1) Read query params + body
 			const url = new URL(request.url)
 			const query = Object.fromEntries(url.searchParams.entries())
 			const bodyText = await request.text()
 			const body = JSON.parse(bodyText)
-
-			console.log('🟦 Request details:', {
-				url: url.toString(),
-				query,
-				body,
-				headers: Object.fromEntries(request.headers.entries()),
-			})
 
 			// 2) Validate SQL client is available
 			if (!sql || !processor) {
@@ -63,19 +54,10 @@ export const APIRoute = createAPIFileRoute('/api/push')({
 				)
 			}
 
-			// Log connection count before processing
-			const beforeCount = await getConnectionCount()
-			console.log('🔵 Active DB connections before push:', beforeCount)
-
 			// 3) Extract auth (JWT) from header or cookie
 			const authHeader = request.headers.get('authorization') ?? ''
 			const token = authHeader.replace(/^Bearer\s+/, '')
 			const authData: AuthData = { sub: token ? parseSub(token) : null }
-
-			console.log('🟩 Processing with auth:', {
-				hasSub: !!authData.sub,
-				token: token ? '(token present)' : '(no token)',
-			})
 
 			// 4) Call process()
 			const result = await processor.process(
@@ -83,12 +65,6 @@ export const APIRoute = createAPIFileRoute('/api/push')({
 				query,
 				body,
 			)
-
-			// Log connection count after processing
-			const afterCount = await getConnectionCount()
-			console.log('🔵 Active DB connections after push:', afterCount)
-
-			console.log('🟪 Push completed successfully:', result)
 
 			// 5) Return JSON
 			return new Response(JSON.stringify(result), {
@@ -105,7 +81,6 @@ export const APIRoute = createAPIFileRoute('/api/push')({
 				JSON.stringify({
 					error: true,
 					details: error instanceof Error ? error.message : 'Unknown error',
-					stack: error instanceof Error ? error.stack : undefined,
 				}),
 				{
 					status: 500,
