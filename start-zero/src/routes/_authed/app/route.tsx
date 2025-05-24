@@ -5,7 +5,7 @@ import { initializeZero, zeroAtom } from '@/lib/zero-setup'
 import { ZeroProvider } from '@rocicorp/zero/react'
 import { Outlet, createFileRoute } from '@tanstack/react-router'
 import { useSyncExternalStore } from 'react'
-import { useEffect } from 'react'
+import { useEffect, useMemo } from 'react'
 import { Suspense } from 'react'
 
 export const Route = createFileRoute('/_authed/app')({
@@ -36,13 +36,16 @@ function AppContent() {
 function RouteComponent() {
 	const zero = useSyncExternalStore(zeroAtom.onChange, () => zeroAtom.value)
 	const { user } = Route.useRouteContext()
-	console.log('🔐 Root route context:', { user })
+	console.log('🔐 App route context:', { user })
 
-	// Initialize Zero with user data
+	// Create stable dependency based on user ID only
+	const userId = useMemo(() => user?.id, [user?.id])
+
+	// Initialize Zero with user data - only when user ID changes
 	useEffect(() => {
 		if (!user) return
 		initializeZero(user)
-	}, [user])
+	}, [user, userId])
 
 	if (!zero) return null
 

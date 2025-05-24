@@ -1,12 +1,14 @@
 import { Outlet, createFileRoute, redirect } from '@tanstack/react-router'
 
 export const Route = createFileRoute('/_authed')({
-	loader: async ({ location, context }) => {
-		// Use existing root context if available during client navigation
-		if (context?.user) return { user: context.user }
-
-		// No user in context, redirect to login immediately
-		throw redirect({ to: '/auth/login', search: { redirect: location.href } })
+	beforeLoad: async ({ location, context }) => {
+		// If no user in context, redirect to login
+		if (!context?.user) {
+			throw redirect({ to: '/auth/login', search: { redirect: location.href } })
+		}
+		
+		// Pass through the user context
+		return { user: context.user }
 	},
 	component: AuthWrapper,
 })
