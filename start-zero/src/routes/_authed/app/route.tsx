@@ -1,5 +1,6 @@
 import { AppSidebar } from '@/components/app-sidebar'
 import { SidebarProvider } from '@/components/ui/sidebar'
+import { useSyncUserZero } from '@/hooks/use-sync-user-zero'
 import { initializeZero, zeroAtom } from '@/lib/zero-setup'
 import { ZeroProvider } from '@rocicorp/zero/react'
 import { Outlet, createFileRoute } from '@tanstack/react-router'
@@ -13,6 +14,10 @@ export const Route = createFileRoute('/_authed/app')({
 })
 
 function AppContent() {
+	const { syncUser } = useSyncUserZero()
+
+	syncUser()
+
 	return (
 		<SidebarProvider className='flex h-screen'>
 			<AppSidebar variant='inset' />
