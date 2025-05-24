@@ -15,7 +15,7 @@ import {
 	TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { getSupabaseBrowserClient } from '@/lib/supabase-client'
-import { useZero } from '@rocicorp/zero/react'
+import { useQuery, useZero } from '@rocicorp/zero/react'
 import { BugIcon, CheckCircle2, RefreshCw, XCircle } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
 
@@ -141,6 +141,10 @@ interface ZeroStatusData {
 export function AccountDebug() {
 	const z = useZero()
 	const supabase = getSupabaseBrowserClient()
+
+	// Query Zero database to check if user actually exists
+	const [zeroUsers] = useQuery(z.query.users)
+
 	const [jwt, setJwt] = useState<string | null>(null)
 	const [decodedHeader, setDecodedHeader] = useState<JWTHeader | null>(null)
 	const [decodedPayload, setDecodedPayload] = useState<JWTPayload | null>(null)
@@ -161,6 +165,7 @@ export function AccountDebug() {
 		match: boolean
 		authId?: string
 		zeroId?: string
+		userExistsInZero?: boolean
 	}>({ match: false })
 
 	const fetchToken = useCallback(async () => {
@@ -236,7 +241,7 @@ export function AccountDebug() {
 						id: supaSession.user?.id,
 						email: supaSession.user?.email || undefined,
 						name: supaSession.user?.user_metadata?.name as string,
-						emailVerified: supaSession.user?.email_confirmed_at ? true : false,
+						emailVerified: !!supaSession.user?.email_confirmed_at,
 					},
 					provider: supaSession.user?.app_metadata?.provider,
 					expiresAt: supaSession.expires_at,
@@ -290,21 +295,27 @@ export function AccountDebug() {
 		}
 	}, [z])
 
-	// Check if Supabase Auth and Zero user IDs match
+	// Check if Supabase Auth and Zero user IDs match AND user exists in Zero DB
 	useEffect(() => {
 		const authId = sessionData?.user?.id
 		const zeroId = zeroStatusData?.userID
 
+		// Check if user actually exists in Zero database
+		const userExistsInZero = authId
+			? zeroUsers?.some((user) => user.id === authId)
+			: false
+
 		if (authId && zeroId) {
 			setIdSyncStatus({
-				match: authId === zeroId,
+				match: authId === zeroId && userExistsInZero,
 				authId,
 				zeroId,
+				userExistsInZero,
 			})
 		} else {
 			setIdSyncStatus({ match: false })
 		}
-	}, [sessionData, zeroStatusData])
+	}, [sessionData, zeroStatusData, zeroUsers])
 
 	const signOut = useCallback(async () => {
 		try {
@@ -423,8 +434,10 @@ export function AccountDebug() {
 													<TooltipContent side='right'>
 														<p className='text-xs max-w-[225px]'>
 															{idSyncStatus.match
-																? 'Auth ID and Zero ID are in sync'
-																: 'Auth ID and Zero ID are not synchronized'}
+																? 'User exists in Zero DB and IDs match'
+																: idSyncStatus.userExistsInZero === false
+																	? 'User not found in Zero database'
+																	: 'Auth ID and Zero ID are not synchronized'}
 														</p>
 													</TooltipContent>
 												</Tooltip>
@@ -470,9 +483,9 @@ export function AccountDebug() {
 							</div>
 							<div className='p-4'>
 								<div className='space-y-3'>
-									{allSessions.map((session) => (
+									{allSessions.map((session, index) => (
 										<div
-											key={session.id}
+											key={session.id || `session-${index}`}
 											className='flex justify-between items-center p-2 rounded-md border bg-muted/20'
 										>
 											<div className='flex-1'>
@@ -533,8 +546,10 @@ export function AccountDebug() {
 													<TooltipContent side='right'>
 														<p className='text-xs max-w-[225px]'>
 															{idSyncStatus.match
-																? 'Zero ID and Auth ID are in sync'
-																: 'Zero ID and Auth ID are not synchronized'}
+																? 'User exists in Zero DB and IDs match'
+																: idSyncStatus.userExistsInZero === false
+																	? 'User not found in Zero database'
+																	: 'Zero ID and Auth ID are not synchronized'}
 														</p>
 													</TooltipContent>
 												</Tooltip>

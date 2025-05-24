@@ -16,7 +16,10 @@ export const Route = createFileRoute('/_authed/app')({
 function AppContent() {
 	const { syncUser } = useSyncUserZero()
 
-	syncUser()
+	// Sync user data with Zero database when app loads
+	useEffect(() => {
+		syncUser()
+	}, [syncUser])
 
 	return (
 		<SidebarProvider className='flex h-screen'>
