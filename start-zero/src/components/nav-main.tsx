@@ -1,7 +1,6 @@
 import Logo from '@/components/logo'
 import { Button } from '@/components/ui/button'
-import { useSession } from '@/lib/auth-client'
-import { Link } from '@tanstack/react-router'
+import { Link, useRouterState } from '@tanstack/react-router'
 
 interface HeaderProps {
 	location?: 'homepage' | 'auth' | 'app'
@@ -16,9 +15,10 @@ export default function NavMain({ location = 'homepage' }: HeaderProps) {
 }
 
 const HomePageHeader = () => {
-	const { data: session, isPending } = useSession()
+	const routerState = useRouterState()
+	const user = routerState.matches[0]?.context?.user
 
-	const isLoggedIn = !!session && !isPending
+	const isLoggedIn = !!user
 
 	return (
 		<nav className='w-full py-4 px-4 bg-background flex justify-between items-center border-b border-border text-base h-18'>
@@ -41,7 +41,7 @@ const HomePageHeader = () => {
 
 				{isLoggedIn ? (
 					<Link to='/app'>
-						<Button size='sm' variant='outline'>
+						<Button size='sm' variant='default'>
 							Dashboard
 						</Button>
 					</Link>

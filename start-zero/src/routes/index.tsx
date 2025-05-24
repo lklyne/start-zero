@@ -28,6 +28,11 @@ function LandingPage() {
 			description: 'Email service.',
 		},
 		{
+			name: 'Shadcn UI',
+			url: 'https://ui.shadcn.com/',
+			description: 'UI library.',
+		},
+		{
 			name: 'Polar',
 			url: 'https://polar.sh/',
 			description: 'Payments and subscriptions. (Planned)',
