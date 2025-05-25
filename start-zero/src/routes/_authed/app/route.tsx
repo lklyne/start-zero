@@ -43,9 +43,9 @@ function RouteComponent() {
 
 	// Initialize Zero with user data - only when user ID changes
 	useEffect(() => {
-		if (!user) return
+		if (!userId) return
 		initializeZero(user)
-	}, [user, userId])
+	}, [userId, user])
 
 	if (!zero) return null
 
