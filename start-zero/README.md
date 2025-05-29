@@ -46,3 +46,7 @@ bun dev
 - Run `bun email:dev` to start the email server.
 - Run `bun email:export` to export the emails.
 - Run `bun email:send` to send an email.
+
+## Based on
+
+- 
